@@ -1,5 +1,7 @@
 package ru.den.photogallery.ui
 
+import android.content.Context
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
@@ -43,5 +45,11 @@ class PhotoGalleryActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         Log.i("PhotoGalleryActivity", "activity destroyed")
+    }
+
+    companion object {
+        fun newIntent(context: Context): Intent {
+            return Intent(context, PhotoGalleryActivity::class.java)
+        }
     }
 }

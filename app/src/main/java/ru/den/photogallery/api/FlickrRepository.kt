@@ -15,11 +15,19 @@ import ru.den.photogallery.model.GalleryItem
 class FlickrRepository {
     private val flickrApi = ApiService.flickrApi
 
+    fun fetchPhotosRequest(): Call<FlickrResponse> {
+        return flickrApi.fetchPhotos()
+    }
+
     fun fetchPhotos(): LiveData<List<GalleryItem>> =
-        fetchPhotoMetadata(flickrApi.fetchPhotos())
+        fetchPhotoMetadata(fetchPhotosRequest())
+
+    fun searchPhotosRequest(query: String): Call<FlickrResponse> {
+        return flickrApi.searchPhotos(query)
+    }
 
     fun searchPhotos(query: String): LiveData<List<GalleryItem>> =
-        fetchPhotoMetadata(flickrApi.searchPhotos(query))
+        fetchPhotoMetadata(searchPhotosRequest(query))
 
     @WorkerThread
     fun fetchPhoto(url: String): Bitmap? {

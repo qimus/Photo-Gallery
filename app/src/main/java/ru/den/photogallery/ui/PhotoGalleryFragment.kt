@@ -7,17 +7,19 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.*
-import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import ru.den.photogallery.QueryPreferences
 import ru.den.photogallery.R
 import ru.den.photogallery.ThumbnailDownloader
 import ru.den.photogallery.adapter.PhotoAdapter
+import ru.den.photogallery.framework.lifecycle.NotificationObserver
 import ru.den.photogallery.viewmodel.PhotoGalleryViewModel
+import ru.den.photogallery.framework.worker.PollWorker
 
 class PhotoGalleryFragment : Fragment() {
 
@@ -25,6 +27,7 @@ class PhotoGalleryFragment : Fragment() {
     private lateinit var photoGalleryViewModel: PhotoGalleryViewModel
     private lateinit var thumbnailDownloader: ThumbnailDownloader<PhotoAdapter.PhotoViewHolder>
     private var progressDialog: DialogFragment? = null
+    private lateinit var notificationObserver: NotificationObserver
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +45,9 @@ class PhotoGalleryFragment : Fragment() {
             photoHolder.bind(drawable)
         }
         lifecycle.addObserver(thumbnailDownloader.fragmentLifecycleObserver)
+
+        notificationObserver = NotificationObserver(requireContext())
+        lifecycle.addObserver(notificationObserver)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -66,16 +72,35 @@ class PhotoGalleryFragment : Fragment() {
             }
         })
 
-
         searchView.setOnSearchClickListener {
             searchView.setQuery(photoGalleryViewModel.searchTerm, false)
         }
+
+        val toggleItem = menu.findItem(R.id.menu_toggle_polling)
+        val isPolling = QueryPreferences.isPolling(requireContext())
+        val toggleItemTitle = if (isPolling) {
+            getString(R.string.stop_polling)
+        } else {
+            getString(R.string.start_polling)
+        }
+
+        toggleItem.title = toggleItemTitle
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when(item.itemId) {
             R.id.menu_item_clear -> {
                 photoGalleryViewModel.search("")
+                true
+            }
+            R.id.menu_toggle_polling -> {
+                val isPolling = QueryPreferences.isPolling(requireContext())
+                if (isPolling) {
+                    PollWorker.cancelWork(requireContext())
+                } else {
+                    PollWorker.schedule(requireContext())
+                }
+                activity?.invalidateOptionsMenu()
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -151,6 +176,7 @@ class PhotoGalleryFragment : Fragment() {
         super.onDestroy()
         Log.i(TAG, "onDestroy")
         lifecycle.removeObserver(thumbnailDownloader.fragmentLifecycleObserver)
+        lifecycle.removeObserver(notificationObserver)
     }
 
     override fun onDestroyView() {
