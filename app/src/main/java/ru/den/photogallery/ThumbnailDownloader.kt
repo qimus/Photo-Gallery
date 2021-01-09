@@ -12,6 +12,7 @@ import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.OnLifecycleEvent
 import ru.den.photogallery.api.FlickrRepository
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 private const val TAG = "ThumbnailDownloader"
 private const val MESSAGE_DOWNLOAD = 0
@@ -26,6 +27,8 @@ class ThumbnailDownloader<in T>(
     private val requestMap = ConcurrentHashMap<T, String>()
     private val flickrRepository = FlickrRepository()
     private val cache = LruCache<String, Bitmap>(100)
+
+    private val executorService = Executors.newFixedThreadPool(4)
 
     val fragmentLifecycleObserver = object : LifecycleObserver {
         @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)

@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.*
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
@@ -16,7 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import ru.den.photogallery.QueryPreferences
 import ru.den.photogallery.R
 import ru.den.photogallery.ThumbnailDownloader
-import ru.den.photogallery.adapter.PhotoAdapter
+import ru.den.photogallery.ui.adapter.PhotoAdapter
 import ru.den.photogallery.framework.lifecycle.NotificationObserver
 import ru.den.photogallery.viewmodel.PhotoGalleryViewModel
 import ru.den.photogallery.framework.worker.PollWorker
@@ -42,7 +43,7 @@ class PhotoGalleryFragment : Fragment() {
 
         thumbnailDownloader = ThumbnailDownloader(responseHandler) { photoHolder, bitmap ->
             val drawable = BitmapDrawable(resources, bitmap)
-            photoHolder.bind(drawable)
+            photoHolder.bindDrawable(drawable)
         }
         lifecycle.addObserver(thumbnailDownloader.fragmentLifecycleObserver)
 
@@ -122,7 +123,14 @@ class PhotoGalleryFragment : Fragment() {
         Log.i(TAG, "onViewCreated")
         photoRecyclerView = view.findViewById(R.id.photoRecyclerView)
         configureRecyclerView()
-        photoRecyclerView.adapter = PhotoAdapter(listOf(), thumbnailDownloader)
+        photoRecyclerView.adapter = PhotoAdapter(listOf(), thumbnailDownloader) { galleryItem ->
+            val intent = PhotoPageActivity.newIntent(view.context, galleryItem.photoPageUri)
+            context?.startActivity(intent)
+            (activity as? AppCompatActivity)?.overridePendingTransition(
+                R.anim.slide_in_right,
+                R.anim.slide_out_left
+            )
+        }
 
         photoGalleryViewModel.galleryItemLiveData.observe(viewLifecycleOwner, { galleryItems ->
             (photoRecyclerView.adapter as PhotoAdapter).setPhotos(galleryItems)
