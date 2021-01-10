@@ -7,16 +7,20 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.*
+import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
+import androidx.core.view.isVisible
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.paging.PagedList
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import ru.den.photogallery.QueryPreferences
 import ru.den.photogallery.R
 import ru.den.photogallery.ThumbnailDownloader
+import ru.den.photogallery.api.State
 import ru.den.photogallery.ui.adapter.PhotoAdapter
 import ru.den.photogallery.framework.lifecycle.NotificationObserver
 import ru.den.photogallery.viewmodel.PhotoGalleryViewModel
@@ -29,6 +33,8 @@ class PhotoGalleryFragment : Fragment() {
     private lateinit var thumbnailDownloader: ThumbnailDownloader<PhotoAdapter.PhotoViewHolder>
     private var progressDialog: DialogFragment? = null
     private lateinit var notificationObserver: NotificationObserver
+    private lateinit var photoAdapter: PhotoAdapter
+    private lateinit var noResultContainer: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -121,25 +127,49 @@ class PhotoGalleryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.i(TAG, "onViewCreated")
+        noResultContainer = view.findViewById(R.id.noResultContainer)
         photoRecyclerView = view.findViewById(R.id.photoRecyclerView)
         configureRecyclerView()
-        photoRecyclerView.adapter = PhotoAdapter(listOf(), thumbnailDownloader) { galleryItem ->
-            val intent = PhotoPageActivity.newIntent(view.context, galleryItem.photoPageUri)
+        configureObservable()
+    }
+
+    private fun configureRecyclerView() {
+        photoRecyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
+        photoAdapter = PhotoAdapter(thumbnailDownloader) { galleryItem ->
+            val intent = PhotoPageActivity.newIntent(requireContext(), galleryItem.photoPageUri)
             context?.startActivity(intent)
             (activity as? AppCompatActivity)?.overridePendingTransition(
                 R.anim.slide_in_right,
                 R.anim.slide_out_left
             )
         }
+        photoRecyclerView.adapter = photoAdapter
+    }
 
-        photoGalleryViewModel.galleryItemLiveData.observe(viewLifecycleOwner, { galleryItems ->
-            (photoRecyclerView.adapter as PhotoAdapter).setPhotos(galleryItems)
-            hideProgress()
-            Log.d(TAG, "Response received: $galleryItems")
+    private fun configureObservable() {
+        photoGalleryViewModel.galleryItemLiveData.observe(viewLifecycleOwner, { pagedList ->
+            photoAdapter.submitList(pagedList)
+        })
+
+        photoGalleryViewModel.stateLiveData.observe(viewLifecycleOwner, { state ->
+            when (state) {
+                State.LOADING -> {
+                    showProgress()
+                    showNoResultContainer(false)
+                }
+                State.EMPTY -> {
+                    showNoResultContainer(true)
+                    hideProgress()
+                }
+                State.DONE -> hideProgress()
+            }
         })
     }
 
     private fun showProgress() {
+        if (progressDialog != null) {
+            return
+        }
         progressDialog = SpinnerModalDialog()
         progressDialog?.show(parentFragmentManager, "progress")
     }
@@ -149,35 +179,8 @@ class PhotoGalleryFragment : Fragment() {
         progressDialog = null
     }
 
-    private fun configureRecyclerView() {
-        photoRecyclerView.layoutManager = GridLayoutManager(requireContext(), 3)
-
-        photoRecyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            private var lastUpdateTime: Long = 0
-
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                val layoutManager = recyclerView.layoutManager as? GridLayoutManager ?: return
-                val firstPosition = layoutManager.findFirstVisibleItemPosition()
-                val lastPosition = layoutManager.findLastVisibleItemPosition()
-                val adapter = recyclerView.adapter as? PhotoAdapter ?: return
-
-                if (lastUpdateTime > 0 && System.currentTimeMillis() - lastUpdateTime < 100) {
-                    return
-                }
-
-                lastUpdateTime = System.currentTimeMillis()
-
-                (firstPosition downTo firstPosition - 10)
-                    .takeWhile { it >= 0 }
-                    .map { adapter.getItem(it) }
-                    .map { item -> thumbnailDownloader.preupload(item.url) }
-
-                (lastPosition until lastPosition + 10)
-                    .takeWhile { it < adapter.itemCount }
-                    .map { adapter.getItem(it) }
-                    .map { item -> thumbnailDownloader.preupload(item.url) }
-            }
-        })
+    private fun showNoResultContainer(visible: Boolean) {
+        noResultContainer.isVisible = visible
     }
 
     override fun onDestroy() {

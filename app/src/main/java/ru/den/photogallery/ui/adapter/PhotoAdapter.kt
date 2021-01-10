@@ -8,17 +8,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.core.content.ContextCompat
+import androidx.paging.PagedListAdapter
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import ru.den.photogallery.R
 import ru.den.photogallery.ThumbnailDownloader
 import ru.den.photogallery.model.GalleryItem
-import ru.den.photogallery.ui.PhotoPageActivity
 
 class PhotoAdapter(
-    private var photos: List<GalleryItem>,
     private val thumbnailDownloader: ThumbnailDownloader<PhotoViewHolder>,
     private val handleClick: (GalleryItem) -> Unit
-) : RecyclerView.Adapter<PhotoAdapter.PhotoViewHolder>() {
+) : PagedListAdapter<GalleryItem, PhotoAdapter.PhotoViewHolder>(DIFF_CALLBACK) {
     private lateinit var context: Context
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhotoViewHolder {
@@ -29,26 +29,13 @@ class PhotoAdapter(
         return PhotoViewHolder(photoImageView)
     }
 
-    fun setPhotos(photos: List<GalleryItem>) {
-        this.photos = photos
-        notifyDataSetChanged()
-    }
-
-    fun getItem(position: Int): GalleryItem {
-        return photos[position]
-    }
-
     override fun onBindViewHolder(holder: PhotoViewHolder, position: Int) {
-        val galleryItem = photos[position]
+        val galleryItem = getItem(position)!!
         val placeholder = ContextCompat.getDrawable(context, R.drawable.ic_image_preview)
             ?: ColorDrawable()
         thumbnailDownloader.queueThumbnail(holder, galleryItem.url)
         holder.bindDrawable(placeholder)
         holder.bindGalleryItem(galleryItem)
-    }
-
-    override fun getItemCount(): Int {
-        return photos.size
     }
 
     inner class PhotoViewHolder(private val imageView: ImageView) : RecyclerView.ViewHolder(imageView), View.OnClickListener {
@@ -68,6 +55,18 @@ class PhotoAdapter(
 
         fun bindGalleryItem(galleryItem: GalleryItem) {
             this.galleryItem = galleryItem
+        }
+    }
+
+    companion object {
+        private val DIFF_CALLBACK = object : DiffUtil.ItemCallback<GalleryItem>() {
+            override fun areItemsTheSame(oldItem: GalleryItem, newItem: GalleryItem): Boolean {
+                return oldItem.id == newItem.id
+            }
+
+            override fun areContentsTheSame(oldItem: GalleryItem, newItem: GalleryItem): Boolean {
+                return oldItem == newItem
+            }
         }
     }
 }

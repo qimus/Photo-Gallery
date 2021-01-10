@@ -10,4 +10,5 @@
 
     <string name="start_polling">Включить проверку новых изображений</string>
     <string name="stop_polling">Отключить проверку новых изображений</string>
+    <string name="no_images_found">К сожалению, изображения не найдены</string>
 </resources>

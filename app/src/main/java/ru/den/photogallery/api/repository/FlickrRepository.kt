@@ -1,4 +1,4 @@
-package ru.den.photogallery.api
+package ru.den.photogallery.api.repository
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -9,6 +9,7 @@ import androidx.lifecycle.MutableLiveData
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import ru.den.photogallery.api.ApiService
 import ru.den.photogallery.api.model.FlickrResponse
 import ru.den.photogallery.model.GalleryItem
 

@@ -9,4 +9,5 @@
 
     <string name="start_polling">Start polling</string>
     <string name="stop_polling">Stop polling</string>
+    <string name="no_images_found">Sorry, no images found</string>
 </resources>

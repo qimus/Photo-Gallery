@@ -9,11 +9,18 @@ import ru.den.photogallery.api.model.FlickrResponse
 
 interface FlickrApi {
     @GET("services/rest/?method=flickr.interestingness.getList")
-    fun fetchPhotos(): Call<FlickrResponse>
+    fun fetchPhotos(
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 100
+    ): Call<FlickrResponse>
 
     @GET
     fun fetchUrlBytes(@Url url: String): Call<ResponseBody>
 
     @GET("services/rest?method=flickr.photos.search")
-    fun searchPhotos(@Query("text") query: String): Call<FlickrResponse>
+    fun searchPhotos(
+        @Query("text") query: String,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 100
+    ): Call<FlickrResponse>
 }

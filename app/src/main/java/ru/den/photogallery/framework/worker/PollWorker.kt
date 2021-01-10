@@ -6,7 +6,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.work.*
 import ru.den.photogallery.QueryPreferences
-import ru.den.photogallery.api.FlickrRepository
+import ru.den.photogallery.api.repository.FlickrRepository
 import ru.den.photogallery.model.GalleryItem
 import java.util.concurrent.TimeUnit
 
